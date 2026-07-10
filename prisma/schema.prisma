@@ -1,0 +1,267 @@
+
+
+
+// Delivery Buddy API — Prisma Schema
+
+
+generator client {
+  provider        = "prisma-client-js"
+ 
+}
+
+datasource db {
+  provider = "postgresql"
+  
+}
+
+
+// ENUMS
+
+
+enum TransportationType {
+  bicycle
+  car
+  truck
+}
+
+enum CourierStatus {
+  active
+  inactive
+  suspended
+}
+
+enum ShiftStatus {
+  active
+  completed
+}
+
+enum TransactionType {
+  earning
+  tip
+  withdrawal
+}
+
+enum OrderStatus {
+  pending
+  assigned
+  in_transit
+  arrived
+  delivered
+  cancelled
+}
+
+enum PaymentMethod {
+  credit_card
+  cash
+  wallet
+}
+
+enum SenderType {
+  courier
+  customer
+  system
+}
+
+enum NotificationType {
+  order
+  payment
+  system
+  promo
+}
+
+
+// MODELS
+
+
+model Team {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique @db.VarChar(100)
+  couriers  Courier[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("teams")
+}
+
+model Courier {
+  id                 String             @id @default(uuid()) @db.Uuid
+  workId             String             @unique @map("work_id") @db.VarChar(50)
+  name               String             @db.VarChar(150)
+  email              String             @unique @db.VarChar(150)
+  phone              String?            @db.VarChar(30)
+  passwordHash       String             @map("password_hash") @db.VarChar(255)
+  avatarUrl          String?            @map("avatar_url")
+  teamId             String?            @map("team_id") @db.Uuid
+  team               Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  transportationType TransportationType @map("transportation_type")
+  vehicleNumber      String?            @map("vehicle_number") @db.VarChar(50)
+  status             CourierStatus      @default(active)
+  level              Int                @default(1)
+  currentRate        Decimal            @default(0) @map("current_rate") @db.Decimal(5, 2)
+
+  shifts             Shift[]
+  wallet             Wallet?
+  orders             Order[]
+  notifications      Notification[]
+  settings           CourierSettings?
+
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  @@index([teamId])
+  @@index([status])
+  @@map("couriers")
+}
+
+model Shift {
+  id                  String      @id @default(uuid()) @db.Uuid
+  courierId           String      @map("courier_id") @db.Uuid
+  courier             Courier     @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  startTime           DateTime    @default(now()) @map("start_time")
+  endTime             DateTime?   @map("end_time")
+  status              ShiftStatus @default(active)
+  earned              Decimal     @default(0) @db.Decimal(10, 2)
+  tips                Decimal     @default(0) @db.Decimal(10, 2)
+  deliveriesCompleted Int         @default(0) @map("deliveries_completed")
+
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  @@index([courierId])
+  @@index([status])
+  @@map("shifts")
+}
+
+model Wallet {
+  id           String        @id @default(uuid()) @db.Uuid
+  courierId    String        @unique @map("courier_id") @db.Uuid
+  courier      Courier       @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  balance      Decimal       @default(0) @db.Decimal(10, 2)
+  tipsBalance  Decimal       @default(0) @map("tips_balance") @db.Decimal(10, 2)
+  rateTrendPct Decimal       @default(0) @map("rate_trend_pct") @db.Decimal(5, 2)
+  transactions Transaction[]
+
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@map("wallets")
+}
+
+model Order {
+  id                 String        @id @default(uuid()) @db.Uuid
+  orderNumber        String        @unique @map("order_number") @db.VarChar(30)
+  courierId          String?       @map("courier_id") @db.Uuid
+  courier            Courier?      @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  status             OrderStatus   @default(pending)
+
+  pickupName         String?       @map("pickup_name") @db.VarChar(150)
+  pickupAddress      String?       @map("pickup_address")
+  pickupLat          Decimal?      @map("pickup_lat") @db.Decimal(9, 6)
+  pickupLng          Decimal?      @map("pickup_lng") @db.Decimal(9, 6)
+
+  customerName       String        @map("customer_name") @db.VarChar(150)
+  customerPhone      String?       @map("customer_phone") @db.VarChar(30)
+  destinationAddress String        @map("destination_address")
+  destinationLat     Decimal?      @map("destination_lat") @db.Decimal(9, 6)
+  destinationLng     Decimal?      @map("destination_lng") @db.Decimal(9, 6)
+
+  paymentMethod      PaymentMethod @default(credit_card) @map("payment_method")
+  subtotal           Decimal       @default(0) @db.Decimal(10, 2)
+  total              Decimal       @default(0) @db.Decimal(10, 2)
+  earning            Decimal       @default(0) @db.Decimal(10, 2)
+  tip                Decimal       @default(0) @db.Decimal(10, 2)
+
+  etaMinutes         Int?          @map("eta_minutes")
+  distanceKm         Decimal?      @map("distance_km") @db.Decimal(6, 2)
+
+  items              OrderItem[]
+  transactions       Transaction[]
+  messages           Message[]
+
+  createdAt          DateTime      @default(now()) @map("created_at")
+  deliveredAt        DateTime?     @map("delivered_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  @@index([courierId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  name      String   @db.VarChar(150)
+  options   String?
+  price     Decimal  @db.Decimal(10, 2)
+  quantity  Int      @default(1)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Transaction {
+  id        String          @id @default(uuid()) @db.Uuid
+  walletId  String          @map("wallet_id") @db.Uuid
+  wallet    Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  orderId   String?         @map("order_id") @db.Uuid
+  order     Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  type      TransactionType
+  amount    Decimal         @db.Decimal(10, 2)
+
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([walletId])
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model Message {
+  id         String     @id @default(uuid()) @db.Uuid
+  orderId    String     @map("order_id") @db.Uuid
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  senderType SenderType @map("sender_type")
+  senderId   String?    @map("sender_id") @db.Uuid
+  content    String
+  readAt     DateTime?  @map("read_at")
+
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  courierId String           @map("courier_id") @db.Uuid
+  courier   Courier          @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String           @db.VarChar(150)
+  body      String?
+  isRead    Boolean          @default(false) @map("is_read")
+
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([courierId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+model CourierSettings {
+  id                      String   @id @default(uuid()) @db.Uuid
+  courierId               String   @unique @map("courier_id") @db.Uuid
+  courier                 Courier  @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  fuelManagement          Json     @default("{}") @map("fuel_management")
+  billingMethod           Json     @default("{}") @map("billing_method")
+  locationPreferences     Json     @default("{}") @map("location_preferences")
+  notificationPreferences Json     @default("{}") @map("notification_preferences")
+
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("courier_settings")
+}
