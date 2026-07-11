@@ -1,5 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType, INestApplication } from '@nestjs/common';
+import {
+  ValidationPipe,
+  VersioningType,
+  INestApplication,
+} from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -12,7 +16,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 export async function createNestApp(): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, { cors: true });
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', { exclude: ['/'] });
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   app.useGlobalPipes(
@@ -34,7 +38,18 @@ export async function createNestApp(): Promise<INestApplication> {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+
+  // Serve Swagger UI's assets from a CDN instead of local node_modules
+  // files, since Vercel's serverless bundler doesn't carry static files
+  // into the function — without this, /docs renders a blank page there.
+  SwaggerModule.setup('docs', app, document, {
+    customCssUrl:
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui.min.css',
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-bundle.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-standalone-preset.min.js',
+    ],
+  });
 
   return app;
 }
