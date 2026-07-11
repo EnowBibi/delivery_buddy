@@ -1,10 +1,9 @@
-import { Controller, Get, VERSION_NEUTRAL, Version } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 
 @Controller()
 export class AppController {
   @Get()
-  @Version(VERSION_NEUTRAL)
   @ApiExcludeEndpoint()
   root() {
     return {
