@@ -1,0 +1,177 @@
+// Delivery Buddy API — ERD (DBML)
+// Paste this into https://dbdiagram.io to render/export the diagram.
+
+Table teams {
+  id uuid [pk]
+  name varchar [unique, not null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table couriers {
+  id uuid [pk]
+  work_id varchar [unique, not null]
+  name varchar [not null]
+  email varchar [unique, not null]
+  phone varchar
+  password_hash varchar [not null]
+  avatar_url text
+  team_id uuid [ref: > teams.id]
+  transportation_type transportation_type [not null]
+  vehicle_number varchar
+  status courier_status [default: 'active']
+  level int [default: 1]
+  current_rate decimal
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table shifts {
+  id uuid [pk]
+  courier_id uuid [ref: > couriers.id]
+  start_time timestamp
+  end_time timestamp
+  status shift_status [default: 'active']
+  earned decimal
+  tips decimal
+  deliveries_completed int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table wallets {
+  id uuid [pk]
+  courier_id uuid [unique, ref: > couriers.id]
+  balance decimal
+  tips_balance decimal
+  rate_trend_pct decimal
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table orders {
+  id uuid [pk]
+  order_number varchar [unique, not null]
+  courier_id uuid [ref: > couriers.id]
+  status order_status [default: 'pending']
+  pickup_name varchar
+  pickup_address text
+  pickup_lat decimal
+  pickup_lng decimal
+  customer_name varchar [not null]
+  customer_phone varchar
+  destination_address text [not null]
+  destination_lat decimal
+  destination_lng decimal
+  payment_method payment_method [default: 'credit_card']
+  subtotal decimal
+  total decimal
+  earning decimal
+  tip decimal
+  eta_minutes int
+  distance_km decimal
+  created_at timestamp
+  delivered_at timestamp
+  updated_at timestamp
+}
+
+Table order_items {
+  id uuid [pk]
+  order_id uuid [ref: > orders.id]
+  name varchar [not null]
+  options text
+  price decimal [not null]
+  quantity int [default: 1]
+  created_at timestamp
+}
+
+Table transactions {
+  id uuid [pk]
+  wallet_id uuid [ref: > wallets.id]
+  order_id uuid [ref: > orders.id]
+  type transaction_type [not null]
+  amount decimal [not null]
+  created_at timestamp
+}
+
+Table messages {
+  id uuid [pk]
+  order_id uuid [ref: > orders.id]
+  sender_type sender_type [not null]
+  sender_id uuid
+  content text [not null]
+  read_at timestamp
+  created_at timestamp
+}
+
+Table notifications {
+  id uuid [pk]
+  courier_id uuid [ref: > couriers.id]
+  type notification_type [not null]
+  title varchar [not null]
+  body text
+  is_read boolean [default: false]
+  created_at timestamp
+}
+
+Table courier_settings {
+  id uuid [pk]
+  courier_id uuid [unique, ref: > couriers.id]
+  fuel_management json
+  billing_method json
+  location_preferences json
+  notification_preferences json
+  updated_at timestamp
+}
+
+// Enums
+Enum transportation_type {
+  bicycle
+  car
+  truck
+}
+
+Enum courier_status {
+  active
+  inactive
+  suspended
+}
+
+Enum shift_status {
+  active
+  completed
+}
+
+Enum transaction_type {
+  earning
+  tip
+  withdrawal
+}
+
+Enum order_status {
+  pending
+  assigned
+  in_transit
+  arrived
+  delivered
+  cancelled
+}
+
+Enum payment_method {
+  credit_card
+  cash
+  wallet
+}
+
+Enum sender_type {
+  courier
+  customer
+  system
+}
+
+Enum notification_type {
+  order
+  payment
+  system
+  promo
+}

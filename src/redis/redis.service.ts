@@ -17,14 +17,16 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private client: Redis;
-  private defaultTtl: number;
+  private client!: Redis;
+  private defaultTtl = 60;
 
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit() {
     const url = this.config.get<string>('REDIS_URL', 'redis://localhost:6379');
-    this.defaultTtl = Number(this.config.get<string>('REDIS_TTL_SECONDS', '60'));
+    this.defaultTtl = Number(
+      this.config.get<string>('REDIS_TTL_SECONDS', '60'),
+    );
     this.client = new Redis(url, {
       maxRetriesPerRequest: 3,
       lazyConnect: false,
