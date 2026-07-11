@@ -1,28 +1,17 @@
-import { Handler } from 'aws-lambda';
-import serverlessExpress from '@vendia/serverless-express';
+import type { Express } from 'express';
 import { createNestApp } from '../src/bootstrap';
 
-let cachedHandler: Handler;
+let cachedApp: Express;
 
-/**
- * Vercel serverless entry point. Reuses `createNestApp()` from src/bootstrap.ts
- * so behavior (Swagger, validation, filters) matches the local/main.ts server.
- * The Nest app instance is cached across invocations of the same warm
- * function instance, avoiding a full app rebuild (and a fresh Prisma/Redis
- * connection) on every request.
- */
-async function bootstrapServer(): Promise<Handler> {
+async function bootstrapServer(): Promise<Express> {
   const app = await createNestApp();
   await app.init();
-  const expressApp = app.getHttpAdapter().getInstance();
-  return serverlessExpress({ app: expressApp });
+  return app.getHttpAdapter().getInstance();
 }
 
-export const handler: Handler = async (req: any, res: any) => {
-  if (!cachedHandler) {
-    cachedHandler = await bootstrapServer();
+export default async function handler(req: any, res: any) {
+  if (!cachedApp) {
+    cachedApp = await bootstrapServer();
   }
-  return cachedHandler(req, res, () => {});
-};
-
-export default handler;
+  return cachedApp(req, res);
+}
