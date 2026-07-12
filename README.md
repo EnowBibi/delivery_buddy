@@ -170,6 +170,16 @@ Two things to know about running this stack on Vercel specifically:
 
 **Live API base URL:** `https://delivery-buddy-psi.vercel.app/api/v1`
 
+## Test credentials
+
+A seeded courier account is available for quick testing without signing up:
+
+- Email: adebayo.okafor@deliverybuddy.com
+- Password: password123
+
+This account has sample shifts, orders, and wallet transactions pre-loaded
+via prisma/seed.ts, so the read endpoints return realistic data immediately.
+
 ## API documentation
 
 - Swagger/OpenAPI: served at `https://delivery-buddy-psi.vercel.app/docs` when the app is running (also exportable as JSON via `/docs-json`).
