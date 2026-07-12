@@ -9,7 +9,8 @@ jest.mock('ioredis', () => {
       get: jest.fn(),
       set: jest.fn(),
       del: jest.fn(),
-      quit: jest.fn(),
+      quit: jest.fn().mockResolvedValue(undefined),
+      connect: jest.fn().mockResolvedValue(undefined),
       on: jest.fn(),
     })),
   };
@@ -24,7 +25,9 @@ describe('RedisService', () => {
         RedisService,
         {
           provide: ConfigService,
-          useValue: { get: jest.fn((_key: string, fallback?: string) => fallback) },
+          useValue: {
+            get: jest.fn((_key: string, fallback?: string) => fallback),
+          },
         },
       ],
     }).compile();
