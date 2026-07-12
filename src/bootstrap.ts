@@ -16,7 +16,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 export async function createNestApp(): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, { cors: true });
 
-  app.setGlobalPrefix('api', { exclude: ['/'] });
+  app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   app.useGlobalPipes(
@@ -39,9 +39,6 @@ export async function createNestApp(): Promise<INestApplication> {
     .build();
   const document = SwaggerModule.createDocument(app, config);
 
-  // Serve Swagger UI's assets from a CDN instead of local node_modules
-  // files, since Vercel's serverless bundler doesn't carry static files
-  // into the function — without this, /docs renders a blank page there.
   SwaggerModule.setup('docs', app, document, {
     customCssUrl:
       'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui.min.css',
@@ -49,6 +46,19 @@ export async function createNestApp(): Promise<INestApplication> {
       'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-bundle.min.js',
       'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-standalone-preset.min.js',
     ],
+  });
+
+  // Bare root ("/") handled directly on the underlying Express instance,
+  // completely bypassing Nest's global prefix and versioning. This avoids
+  // any ambiguity with the /api/v1 root route defined in AppController.
+  const expressInstance = app.getHttpAdapter().getInstance();
+  expressInstance.get('/', (_req: any, res: any) => {
+    res.json({
+      status: 'ok',
+      message: 'Delivery Buddy API is running',
+      docs: '/docs',
+      api: '/api/v1',
+    });
   });
 
   return app;

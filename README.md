@@ -96,12 +96,14 @@ npm run test:cov       # coverage report
 ```
 
 Unit tests cover:
+
 - Signup conflict / success paths
 - Login invalid-credential handling
 - Wallet withdrawal validation (insufficient balance) and cache invalidation
 - Redis cache-aside hit/miss behavior
 
 E2e tests cover:
+
 - Health check
 - Request validation (400 on invalid email / short password)
 - Auth failure responses (401 on unknown login)
@@ -113,17 +115,17 @@ Redis is used as a **cache-aside** layer (`RedisService.getOrSet`) to avoid
 redundant database reads and, more importantly, redundant calls to
 third-party services. Cached endpoints/keys:
 
-| Data | Key pattern | TTL | Why |
-|---|---|---|---|
-| Teams list | `teams:all` | 5 min | Rarely changes, read on every onboarding load |
-| Courier profile | `courier:{id}:profile` | 2 min | Read on nearly every screen |
-| Wallet balance | `wallet:{courierId}` | 30s | Frequently polled by the dashboard/wallet screen |
-| Active shift stats | `shift:{courierId}:current` | 15s | Polled while a shift is active |
-| Order route/ETA | `order:{id}:route` | 20s | Stands in for a third-party maps/routing API call — this is the main "avoid redundant third-party calls" case |
-| Order chat thread | `order:{id}:messages` | 30s | Reduces DB load on chat polling |
-| Notifications | `notifications:{id}:{filter}` | 20s | Invalidated (by prefix) on mark-as-read |
-| Courier settings | `courier:{id}:settings` | 2 min | Simple preference reads |
-| Support info | `support:info` | 1 hr | Static content |
+| Data               | Key pattern                   | TTL   | Why                                                                                                           |
+| ------------------ | ----------------------------- | ----- | ------------------------------------------------------------------------------------------------------------- |
+| Teams list         | `teams:all`                   | 5 min | Rarely changes, read on every onboarding load                                                                 |
+| Courier profile    | `courier:{id}:profile`        | 2 min | Read on nearly every screen                                                                                   |
+| Wallet balance     | `wallet:{courierId}`          | 30s   | Frequently polled by the dashboard/wallet screen                                                              |
+| Active shift stats | `shift:{courierId}:current`   | 15s   | Polled while a shift is active                                                                                |
+| Order route/ETA    | `order:{id}:route`            | 20s   | Stands in for a third-party maps/routing API call — this is the main "avoid redundant third-party calls" case |
+| Order chat thread  | `order:{id}:messages`         | 30s   | Reduces DB load on chat polling                                                                               |
+| Notifications      | `notifications:{id}:{filter}` | 20s   | Invalidated (by prefix) on mark-as-read                                                                       |
+| Courier settings   | `courier:{id}:settings`       | 2 min | Simple preference reads                                                                                       |
+| Support info       | `support:info`                | 1 hr  | Static content                                                                                                |
 
 All cache entries are explicitly invalidated (`del` / `delByPrefix`) on the
 corresponding write endpoint, so a courier never sees stale data after an
@@ -132,7 +134,7 @@ immediately).
 
 ## Deployment
 
-### Option A — Vercel (serverless)
+### Vercel (serverless)
 
 This repo includes `api/index.ts` (a serverless entry point via
 `@vendia/serverless-express`) and `vercel.json`, so it deploys directly:
@@ -166,25 +168,9 @@ Two things to know about running this stack on Vercel specifically:
    `src/redis/redis.service.ts` would only need its internals swapped, not
    its call sites.
 
-### Option B — Railway / Render (traditional long-running server)
-
-These fit this stack more naturally, since Prisma + ioredis were built
-around a persistent server, not a serverless one. Uses the standard
-`main.ts` entry point (`app.listen()`), no adapter needed.
-
-1. Provision a PostgreSQL and a Redis instance (both platforms offer these
-   as one-click add-ons).
-2. Set environment variables from `.env.example` in the platform's config/secrets UI.
-3. Build command: `npm install && npx prisma generate && npm run build`
-4. Release/pre-deploy command: `npx prisma migrate deploy`
-5. Start command: `npm run start:prod`
-6. Confirm `GET /health` and `GET /docs` respond, then update the line below
-   with the live base URL.
-
-**Live API base URL:** _add after deploying, e.g. `https://delivery-buddy-api.up.railway.app/api/v1`_
+**Live API base URL:** `https://delivery-buddy-psi.vercel.app/api/v1`
 
 ## API documentation
 
-- Swagger/OpenAPI: served at `/docs` when the app is running (also exportable as JSON via `/docs-json`).
+- Swagger/OpenAPI: served at `https://delivery-buddy-psi.vercel.app/docs` when the app is running (also exportable as JSON via `/docs-json`).
 - Requirements specification (endpoint list with request/response examples): see the separate `Delivery_Buddy_API_Requirements_Spec.docx`.
-- ERD: generate from `prisma/schema.prisma` via `npx prisma-erd-generator` or paste the DBML equivalent into dbdiagram.io.
