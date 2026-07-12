@@ -1,7 +1,11 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import request from 'supertest';
+import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { RedisService } from '../src/redis/redis.service';
 
@@ -37,6 +41,7 @@ describe('AppController / Auth (e2e)', () => {
 
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -51,9 +56,9 @@ describe('AppController / Auth (e2e)', () => {
     await app.close();
   });
 
-  it('GET /health returns ok', () => {
+  it('GET /api/v1/health returns ok', () => {
     return request(app.getHttpServer())
-      .get('/health')
+      .get('/api/v1/health')
       .expect(200)
       .expect((res) => {
         expect(res.body.status).toBe('ok');
